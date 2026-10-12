@@ -1,4 +1,3 @@
-
 # Data Sources
 
 ## M5 Forecasting dataset

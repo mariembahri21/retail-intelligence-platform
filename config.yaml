@@ -1,0 +1,10 @@
+project:
+  name: retail-intelligence-platform
+  seed: 42
+data:
+  raw_dir: data/raw
+  start_date: "2011-01-29"
+  end_date: "2016-05-22"
+scope:
+  stores: [CA_1, TX_1, WI_1]
+  #all items sold in those stores are included (about 3,049)
