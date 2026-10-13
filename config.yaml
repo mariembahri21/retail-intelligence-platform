@@ -8,3 +8,5 @@ data:
 scope:
   stores: [CA_1, TX_1, WI_1]
   #all items sold in those stores are included (about 3,049)
+warehouse:
+  path: data/processed/retail.duckdb
