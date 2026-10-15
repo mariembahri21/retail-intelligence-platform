@@ -10,3 +10,30 @@ scope:
   #all items sold in those stores are included (about 3,049)
 warehouse:
   path: data/processed/retail.duckdb
+
+simulation:
+  moq_packs: 2                    # minimum order quantity, in packs
+  partial_rate_range: [0.03, 0.07]  # share of deliveries that arrive incomplete #store's policy
+  partial_fill_range: [0.6, 0.9]    # a partial delivery brings 60% to 90% of the order
+  categories:
+    FOODS:
+      n_suppliers: 4
+      quoted_lead_days: 2
+      late_rate_range: [0.05, 0.10] #suppliers’ behaviour
+      pack_size: 6
+      review_days: 1
+      service_level: 0.95 #the store’s target: how much safety stock it plans for.
+    HOUSEHOLD:
+      n_suppliers: 3
+      quoted_lead_days: 4
+      late_rate_range: [0.10, 0.15]
+      pack_size: 12
+      review_days: 3
+      service_level: 0.92
+    HOBBIES:
+      n_suppliers: 3
+      quoted_lead_days: 7
+      late_rate_range: [0.15, 0.25]
+      pack_size: 4
+      review_days: 7
+      service_level: 0.90
