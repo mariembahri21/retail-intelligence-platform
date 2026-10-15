@@ -12,6 +12,7 @@ Real demand comes from the M5 (Walmart) dataset. Inventory, supplier deliveries 
 - [x] Raw data ingestion into DuckDB (`ingestion/load_m5.py`)
 - [x] Automatic data quality checks (`tests/test_raw_data.py`)
 - [x] Retailer design: daily cycle, business rules, tables and time periods (`docs/retailer_design.md`)
+- [x] Simulation master data (suppliers and product ordering terms)
 - [ ] Retail operations simulator
 - [ ] Data warehouse with dbt
 - [ ] Demand forecasting and stockout prediction
@@ -25,6 +26,8 @@ Real demand comes from the M5 (Walmart) dataset. Inventory, supplier deliveries 
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+python simulation/master_data.py
+pytest tests/test_master_data.py -v
 ```
 
 **2. Get the data.** The M5 data is not stored in this repository. Accept the rules of the [M5 Forecasting - Accuracy](https://www.kaggle.com/competitions/m5-forecasting-accuracy) competition on Kaggle (non-commercial use only, see `docs/data_sources.md`), download the files and place `calendar.csv`, `sales_train_evaluation.csv` and `sell_prices.csv` in `data/raw/`.
