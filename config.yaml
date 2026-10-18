@@ -37,3 +37,11 @@ simulation:
       pack_size: 4
       review_days: 7
       service_level: 0.90
+  losses:
+    shrink_rate: 0.0003
+    record_error_rate: 0.003
+    count_every_days: 28
+    expiry_rate:
+      FOODS: 0.004
+      HOUSEHOLD: 0.0
+      HOBBIES: 0.0

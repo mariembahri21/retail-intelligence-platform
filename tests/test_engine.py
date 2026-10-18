@@ -48,9 +48,9 @@ def test_cannot_sell_more_than_demand_or_stock(sim):
 
 
 def test_stock_balance(sim):
-    """Today's stock = yesterday's stock + received - sold."""
+    """Today's shelf = yesterday's shelf + received - sold - expired - shrunk."""
     yesterday = sim.end_stock.shift(1)
-    balance = yesterday + sim.received - sim.sold
+    balance = yesterday + sim.received - sim.sold - sim.expired - sim.shrunk
     assert (balance.iloc[1:] == sim.end_stock.iloc[1:]).all()
 
 
@@ -85,3 +85,74 @@ def test_same_input_same_output(demand):
     first = simulate_product(demand, **TERMS)
     second = simulate_product(demand, **TERMS)
     assert first.equals(second)
+
+
+
+
+# ---------- Day 8: losses and stock counts ----------
+
+def run_losses(demand, **kwargs):
+    return simulate_product(
+        demand, rng=np.random.default_rng(1), loss_rng=np.random.default_rng(2),
+        **TERMS, **kwargs
+    )
+
+
+def test_no_loss_rates_means_no_losses(sim):
+    assert (sim.expired == 0).all()
+    assert (sim.shrunk == 0).all()
+    assert (sim.record_error == 0).all()
+    assert (sim.system_stock == sim.end_stock).all()
+
+
+def test_expiry_is_recorded_so_shelf_and_computer_agree(demand):
+    result = run_losses(demand, expiry_rate=0.05)
+    assert result.expired.sum() > 0
+    assert (result.system_stock == result.end_stock).all()
+
+
+def test_shrink_is_invisible_so_computer_is_never_below_the_shelf(demand):
+    result = run_losses(demand, shrink_rate=0.05, count_every_days=None)
+    assert result.shrunk.sum() > 0
+    assert (result.system_stock >= result.end_stock).all()
+    assert (result.system_stock > result.end_stock).any()
+
+
+def test_record_errors_are_between_1_and_3_units(demand):
+    result = run_losses(demand, record_error_rate=1.0, count_every_days=None)
+    errors = result.record_error
+    assert (errors != 0).all()
+    assert (errors.abs() >= 1).all()
+    assert (errors.abs() <= 3).all()
+
+
+def test_full_count_fixes_the_computer(demand):
+    result = run_losses(demand, shrink_rate=0.05, record_error_rate=0.2, count_every_days=7)
+    count_days = result[result.day % 7 == 6]
+    assert (count_days.system_stock == count_days.end_stock).all()
+
+
+def test_empty_shelf_found_triggers_a_count(demand):
+    result = run_losses(demand, shrink_rate=0.05, count_every_days=None)
+    empty_with_lost_sales = result[(result.lost_sales > 0) & (result.end_stock == 0)]
+    assert len(empty_with_lost_sales) > 0
+    assert (empty_with_lost_sales.system_stock == 0).all()
+
+
+def test_losses_increase_lost_sales(demand):
+    def average_lost(**kwargs):
+        runs = [
+            simulate_product(
+                demand, rng=np.random.default_rng(seed),
+                loss_rng=np.random.default_rng(seed + 1000), **TERMS, **kwargs
+            ).lost_sales.sum()
+            for seed in range(10)
+        ]
+        return sum(runs) / len(runs)
+
+    assert average_lost(expiry_rate=0.03, shrink_rate=0.03) > average_lost()
+
+
+def test_losses_are_repeatable(demand):
+    kwargs = dict(expiry_rate=0.02, shrink_rate=0.02, record_error_rate=0.05)
+    assert run_losses(demand, **kwargs).equals(run_losses(demand, **kwargs))

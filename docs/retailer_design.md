@@ -32,6 +32,19 @@ Because stock that has been ordered is already on its way. On day 3 the shelf is
 
 In a real store, deliveries are received in the morning, before or at opening, so the goods are available to customers the same day. If sales came first, a delivery that arrived on the same day would look unavailable and we would record **false stockouts** that never happened. Keeping the order fixed (deliveries, sales, losses, record, review) also makes the simulation easy to explain and to reproduce.
 
+## Losses and stock counts (step 3 of the day)
+
+The shop has two stock numbers. **Physical** is what is on the shelf; customers buy from it. **System** is what the computer believes; the ordering policy uses it.
+
+| Event | Physical | System | Rate |
+|---|---|---|---|
+| Expiry (FOODS only) | down | down (recorded) | 0.4% of the shelf per day |
+| Shrink (theft, damage) | down | unchanged (unseen) | 0.03% of the shelf per day |
+| Record error | unchanged | changes by 1 to 3 units | 0.3% of days |
+| Count | unchanged | set equal to physical | on an empty shelf with a positive system number, and every 28 days |
+
+Because of shrink and record errors the system number can be wrong for days. This creates "phantom stock": the computer shows stock, the shelf is empty, no order is placed, and customers find nothing. A count corrects it.
+
 ## Business rules
 
 All values below are **simulation assumptions**, not real retailer data. They will be stored in `config.yaml` and can be changed.
