@@ -48,9 +48,10 @@ def test_cannot_sell_more_than_demand_or_stock(sim):
 
 
 def test_stock_balance(sim):
-    """Today's shelf = yesterday's shelf + received - sold - expired - shrunk."""
+    """Today's shelf = yesterday's shelf + opening + received - sold - expired - shrunk - cleared."""
     yesterday = sim.end_stock.shift(1)
-    balance = yesterday + sim.received - sim.sold - sim.expired - sim.shrunk
+    balance = (yesterday + sim.opening + sim.received
+               - sim.sold - sim.expired - sim.shrunk - sim.cleared)
     assert (balance.iloc[1:] == sim.end_stock.iloc[1:]).all()
 
 
@@ -86,6 +87,70 @@ def test_same_input_same_output(demand):
     second = simulate_product(demand, **TERMS)
     assert first.equals(second)
 
+
+
+# ---------- Day 7: late and partial deliveries ----------
+
+def test_late_orders_arrive_1_to_4_days_late(demand):
+    _, orders = simulate_product(
+        demand, late_rate=1.0, rng=np.random.default_rng(1), return_orders=True, **TERMS
+    )
+    extra = orders.arrival_day - orders.expected_day
+    assert (extra >= 1).all()
+    assert (extra <= 4).all()
+
+
+def test_partial_orders_bring_60_to_90_percent(demand):
+    _, orders = simulate_product(
+        demand, partial_rate=1.0, rng=np.random.default_rng(1), return_orders=True, **TERMS
+    )
+    assert (orders.delivered_qty < orders.ordered_qty).all()
+    assert (orders.delivered_qty >= (0.6 * orders.ordered_qty).astype(int)).all()
+    assert (orders.delivered_qty <= 0.9 * orders.ordered_qty).all()
+
+
+def test_received_equals_delivered_orders(demand):
+    daily, orders = simulate_product(
+        demand, late_rate=0.3, partial_rate=0.3,
+        rng=np.random.default_rng(2), return_orders=True, **TERMS
+    )
+    arrived = orders[orders.arrival_day < len(demand)]
+    assert daily.received.sum() == arrived.delivered_qty.sum()
+    assert daily.received.sum() <= orders.ordered_qty.sum()
+
+
+def test_observed_rates_are_close_to_the_inputs():
+    rng = np.random.default_rng(3)
+    long_demand = [int(v) for v in rng.poisson(6, 3000)]
+    _, orders = simulate_product(
+        long_demand, late_rate=0.2, partial_rate=0.1,
+        rng=np.random.default_rng(4), return_orders=True, **TERMS
+    )
+    late_share = (orders.late_days > 0).mean()
+    partial_share = (orders.delivered_qty < orders.ordered_qty).mean()
+    assert abs(late_share - 0.2) < 0.06
+    assert abs(partial_share - 0.1) < 0.05
+
+
+def test_same_seed_same_result_different_seed_different_result(demand):
+    kwargs = dict(late_rate=0.3, partial_rate=0.3, **TERMS)
+    a = simulate_product(demand, rng=np.random.default_rng(7), **kwargs)
+    b = simulate_product(demand, rng=np.random.default_rng(7), **kwargs)
+    c = simulate_product(demand, rng=np.random.default_rng(8), **kwargs)
+    assert a.equals(b)
+    assert not a.equals(c)
+
+
+def test_bad_suppliers_lose_more_sales_than_perfect_ones(demand):
+    perfect = simulate_product(demand, **TERMS).lost_sales.sum()
+    bad = [
+        simulate_product(
+            demand, late_rate=0.3, partial_rate=0.3,
+            rng=np.random.default_rng(seed), **TERMS
+        ).lost_sales.sum()
+        for seed in range(10)
+    ]
+    assert sum(bad) / len(bad) > perfect
 
 
 
@@ -156,3 +221,64 @@ def test_losses_increase_lost_sales(demand):
 def test_losses_are_repeatable(demand):
     kwargs = dict(expiry_rate=0.02, shrink_rate=0.02, record_error_rate=0.05)
     assert run_losses(demand, **kwargs).equals(run_losses(demand, **kwargs))
+
+
+
+
+
+# ---------- Day 9: products that are not on sale ----------
+
+def test_default_is_always_on_sale(demand):
+    a = simulate_product(demand, **TERMS)
+    b = simulate_product(demand, on_sale=[True] * len(demand), **TERMS)
+    assert a.equals(b)
+
+
+def test_nothing_happens_before_launch():
+    demand = [0] * 60 + [5] * 100
+    on_sale = [False] * 60 + [True] * 100
+    result = simulate_product(demand, on_sale=on_sale, launch_mu=5, **TERMS)
+    before = result[result.day < 60]
+    assert (before.end_stock == 0).all()
+    assert (before.system_stock == 0).all()
+    assert (before.ordered == 0).all()
+    assert (before.received == 0).all()
+    assert (before.opening == 0).all()
+
+
+def test_opening_delivery_on_launch_day():
+    demand = [0] * 60 + [5] * 100
+    on_sale = [False] * 60 + [True] * 100
+    result = simulate_product(demand, on_sale=on_sale, launch_mu=5, **TERMS)
+    launch = result.iloc[60]
+    assert launch.opening == 72                      # 14 days x 5 units, in packs of 6
+    assert launch.end_stock == 72 - launch.sold
+    assert (result.opening > 0).sum() == 1
+
+
+def test_leaving_the_shelf_clears_stock_and_cancels_orders():
+    demand = [6] * 100 + [0] * 50 + [6] * 100
+    on_sale = [True] * 100 + [False] * 50 + [True] * 100
+    daily, orders = simulate_product(
+        demand, on_sale=on_sale, launch_mu=6, return_orders=True, **TERMS
+    )
+    gap = daily[(daily.day >= 100) & (daily.day < 150)]
+    assert daily.cleared.iloc[100] == daily.end_stock.iloc[99]
+    assert (gap.end_stock == 0).all()
+    assert (gap.system_stock == 0).all()
+    assert (gap.ordered == 0).all()
+    assert (gap.received == 0).all()
+    assert daily.opening.iloc[150] > 0               # a new first delivery on return
+    assert orders.cancelled.any()                    # orders on the road were cancelled
+
+
+def test_stock_balance_with_gaps(demand):
+    on_sale = [(day // 40) % 2 == 0 for day in range(len(demand))]
+    result = simulate_product(
+        demand, on_sale=on_sale, launch_mu=5, expiry_rate=0.02, shrink_rate=0.02, **TERMS
+    )
+    yesterday = result.end_stock.shift(1)
+    balance = (yesterday + result.opening + result.received
+               - result.sold - result.expired - result.shrunk - result.cleared)
+    assert (balance.iloc[1:] == result.end_stock.iloc[1:]).all()
+    assert (result.end_stock[~result.on_sale] == 0).all()

@@ -218,3 +218,12 @@ The 5.3 years of data (2011-01-29 to 2016-05-22) are split into blocks so that n
 - **The live test is sealed.** The simulator generates these days in advance, but nobody looks at the results or tunes anything on them until the models are frozen. It is the final exam and is used only once.
 - **The live replay is the demo.** After the exam, the platform processes the last 22 days one day at a time, as a real system would.
 
+
+## Products that are not on sale
+
+A product is "on sale" on a day if it has a price that week (`raw.prices`). A missing price means the store did not sell it (not launched yet, or removed for a while).
+
+- **Not on sale:** the shop holds no stock, places no orders and records no lost sales. If the product leaves the shelf with stock, the stock is cleared and pending orders are cancelled.
+- **Launch or return:** an opening delivery of 14 days of the department's average demand (rounded to whole packs). The sales history restarts, and the policy uses the department average until the product has 7 days of its own sales.
+- **Limit (department average):** it is computed on the whole history, a small simplification of the simulation.
+- **Limit (censored demand):** when a product has a price but sells nothing for a long time (one product had 742 days), we cannot tell whether there was no demand or a hidden stockout at Walmart. We treat these zeros as zero demand.

@@ -15,6 +15,7 @@ Real demand comes from the M5 (Walmart) dataset. Inventory, supplier deliveries 
 - [x] Simulation master data (suppliers and product ordering terms)
 - [x] Simulation engine, first version (one product)
 - [x] Late and partial deliveries
+- [x] Losses and stock counts
 - [ ] Retail operations simulator
 - [ ] Data warehouse with dbt
 - [ ] Demand forecasting and stockout prediction
