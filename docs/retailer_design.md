@@ -227,3 +227,30 @@ A product is "on sale" on a day if it has a price that week (`raw.prices`). A mi
 - **Launch or return:** an opening delivery of 14 days of the department's average demand (rounded to whole packs). The sales history restarts, and the policy uses the department average until the product has 7 days of its own sales.
 - **Limit (department average):** it is computed on the whole history, a small simplification of the simulation.
 - **Limit (censored demand):** when a product has a price but sells nothing for a long time (one product had 742 days), we cannot tell whether there was no demand or a hidden stockout at Walmart. We treat these zeros as zero demand.
+
+## Decision: HOBBIES stays the "hard category"
+
+HOBBIES loses about 15.7% of demand, against about 5% for FOODS and HOUSEHOLD.
+Cause: weekly review + 7-day delivery (a 14-day blind period), 15-25% late
+deliveries, and the lowest service level (90%). Tested and rejected: a longer
+demand window (28/56/91 days gave 14.3/14.7/14.5% lost).
+
+Decision: keep the terms unchanged. The baseline keeps realistic differences
+between categories, and HOBBIES gives the stockout model more cases to learn from.
+A faster review rhythm and a higher service level will be tested later as
+separate scenarios. Every design decision is judged on development data only
+(burn-in, Block A, Block B), never on the sealed live-test period.
+
+
+## Finding: launch stockouts come from big sellers
+
+Burn-in loses far more demand than later periods (FOODS 14.5%, HOUSEHOLD 8.6%,
+HOBBIES 41.0%, against 5-16% in Block A). In the first 14 days, almost all of
+it comes from the biggest-selling third of products (FOODS 27%, HOBBIES 61%,
+HOUSEHOLD 13%); small and medium sellers lose under 2%.
+Cause: the opening stock and the first orders are sized from the department
+average (launch_mu) until a product has 7 days of history. Big sellers outrun it.
+Decision: keep it. A shop launching a product without history faces the same
+cold-start problem. The same effect hits every product that launches later.
+Feature idea for the models: days since first sale, and sales so far versus the
+department average.
