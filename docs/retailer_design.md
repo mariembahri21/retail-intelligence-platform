@@ -254,3 +254,23 @@ Decision: keep it. A shop launching a product without history faces the same
 cold-start problem. The same effect hits every product that launches later.
 Feature idea for the models: days since first sale, and sales so far versus the
 department average.
+
+## Finding: how often the 7-day stockout label is positive
+
+The label is 1 if there is lost demand on any of the next 7 days. Measured on
+development days only (Block A and Block B), on days when the product is on sale:
+
+| Category | Block A | Block B |
+|---|---|---|
+| FOODS | 8.2% | 7.1% |
+| HOBBIES | 12.4% | 12.0% |
+| HOUSEHOLD | 3.5% | 3.4% |
+
+About 7% of rows are positive overall (about 1 in 14). The rate is stable between
+blocks. It is lower than 7 times the stockout-day rate because stockouts come in
+runs, most strongly for HOBBIES (7-day delivery).
+Decision: the calibration target is the positive rate of the label (3-15%), not
+the stockout-day rate (the first tracker target of 3-10% was written before
+the simulator existed). The simulator is not recalibrated.
+Consequences for modelling: use PR-AUC and recall, not accuracy; report results
+per category; give the model the category as a feature.
