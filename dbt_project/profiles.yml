@@ -1,0 +1,7 @@
+retail_platform:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../data/processed/retail.duckdb
+      threads: 4
