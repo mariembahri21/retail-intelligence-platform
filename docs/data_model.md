@@ -21,8 +21,8 @@ Each layer reads only from the previous one.
 | `dim_supplier` | one supplier | `supplier_id` | `sim.supplier` |
 | `fct_sales` | one store x product x day | `store_id, item_id, date` | M5 sales and prices |
 | `fct_inventory_daily` | one store x product x day | `store_id, item_id, date` | simulator `daily` output |
-| `fct_purchase_orders` | one order placed | `store_id, item_id, order_date` | simulator `orders` output |
-| `fct_deliveries` | one delivery received (one per delivered order) | same as the order | simulator `orders` output |
+| `fct_purchase_orders` | one order placed | `purchase_order_id` (made by us) | simulator `orders` output |
+| `fct_deliveries` | one delivery received (one per delivered order) | `delivery_id` (made by us) | simulator `orders` output |
 
 ### Rules
 
@@ -33,8 +33,9 @@ Each layer reads only from the previous one.
 - Purchase orders and deliveries are events with their own grain. They are never
   joined to a daily table without aggregating to day level first (fan-out).
 - A cancelled order (product left the shelf) has no delivery.
-- The launch delivery (`opening`) is not an order: it appears only in
-  `fct_inventory_daily`.
+- The launch delivery (`opening_units`) is not an order: it appears only in
+  `fct_inventory_daily`. It happens on the first day of each on-sale stretch
+  (the launch, or a return to sale).
 - Dimensions describe; facts measure. Supplier traits (lead time, late rate)
   live in `dim_supplier`; the lateness of one delivery lives in `fct_deliveries`.
 - Planned later: `fct_demand_forecast`, `fct_stockout_risk`, `fct_recommendations`
@@ -66,6 +67,8 @@ Each layer reads only from the previous one.
 | rates and shares | end in `_rate` | `late_rate`, `partial_rate` |
 | yes/no flags | start with `is_` or `was_` | `is_on_sale`, `was_cancelled` |
 
+Two exceptions come from the M5 data and keep its names: `d` and `wm_yr_wk` in `dim_date`.
+
 ### Meaning of key words
 - `demand_units`: what customers wanted to buy (the real M5 sales).
 - `sold_units`: what the shelf could actually sell.
@@ -88,7 +91,7 @@ facts and dimensions get `relationships` tests (from Day 13).
 ### dim_supplier (10 rows)
 | Column | Type | Meaning | Allowed values |
 |---|---|---|---|
-| supplier_id | varchar | Supplier identifier (key) | one of 10 ids |
+| supplier_id | varchar | Supplier identifier (key) | 10 ids, format SUP_<category>_<n>, e.g. SUP_FOODS_1 |
 | cat_id | varchar | The only category this supplier serves | FOODS, HOUSEHOLD, HOBBIES |
 | quoted_lead_days | integer | Days promised between order and delivery | FOODS 2, HOUSEHOLD 4, HOBBIES 7 |
 | late_rate | double | Share of deliveries that arrive late (1-4 days) | FOODS 0.05-0.10, HOUSEHOLD 0.10-0.15, HOBBIES 0.15-0.25 |
@@ -104,7 +107,7 @@ facts and dimensions get `relationships` tests (from Day 13).
 | pack_size | integer | Units per pack; orders are whole packs | FOODS 6, HOUSEHOLD 12, HOBBIES 4 |
 | moq_packs | integer | Minimum order, in packs | 2 |
 | review_days | integer | Days between two stock reviews | FOODS 1, HOUSEHOLD 3, HOBBIES 7 |
-| z | double | Service-level factor of the ordering policy | 1.6449 (95%), 1.405 (92%), 1.2816 (90%) |
+| z | double | Service-level factor of the ordering policy | 1.6449 (95%), 1.4051 (92%), 1.2816 (90%) |
 
 ### dim_date (1,969 rows in the M5 calendar; our project uses 1,941 days)
 | Column | Type | Meaning | Allowed values |
@@ -112,8 +115,11 @@ facts and dimensions get `relationships` tests (from Day 13).
 | date | date | Calendar day (key) | 2011-01-29 onward |
 | d | varchar | M5 day id | d_1, d_2, ... |
 | wm_yr_wk | integer | Walmart week id; joins prices | M5 values |
-| weekday, month, year | varchar / integer | Calendar attributes | real calendar values |
-| event_name_1, event_type_1 | varchar | Holiday or event on that day | null if none |
+| weekday | varchar | Name of the day | Monday, Tuesday, ... |
+| wday | integer | Day number in the Walmart week (Saturday = 1) | 1 to 7 |
+| month, year | integer | Calendar attributes | real calendar values |
+| event_name_1, event_type_1 | varchar | First event of the day | empty if none |
+| event_name_2, event_type_2 | varchar | Second event of the day | usually empty |
 | snap_ca, snap_tx, snap_wi | integer | Food-assistance day in that state | 0 or 1 |
 
 ### fct_sales (grain: store x product x day)
@@ -129,18 +135,18 @@ facts and dimensions get `relationships` tests (from Day 13).
 |---|---|---|---|
 | store_id, item_id, date | | Key | exist in the dimensions |
 | is_on_sale | boolean | Product is on sale that day | true / false |
-| opening_units | integer | Launch delivery (not an order) | >= 0; non-zero only on launch day |
-| received_units | integer | Units that arrived from orders | >= 0 |
+| opening_units | integer | Launch delivery, not an order: 14 days of the department's average demand, rounded up to whole packs | >= 0; non-zero only on the first day of each on-sale stretch (launch or return to sale) |
+| received_units | integer | Units that arrived from orders (does not include opening_units) | >= 0 |
 | demand_units | integer | Customer demand that day | = fct_sales.demand_units |
 | sold_units | integer | Units the shelf really sold | 0 to demand_units |
 | lost_sales_units | integer | demand_units minus sold_units | >= 0; > 0 = stockout |
-| expired_units | integer | Units that expired (FOODS only) | >= 0 |
-| shrunk_units | integer | Units lost to theft or damage (the computer does not see them) | >= 0 |
-| cleared_units | integer | Stock removed when the product leaves the shelf | >= 0 |
-| record_error_units | integer | Error added to the computer's stock | integer, usually -3 to +3 |
-| count_adjustment_units | integer | Correction made by a stock count | integer |
+| expired_units | integer | Units thrown away (FOODS only; removed from the shelf and from the computer) | >= 0 |
+| shrunk_units | integer | Units lost to theft or damage, in every category (the computer does not see them) | >= 0 |
+| cleared_units | integer | Stock removed on the first day after the product leaves the shelf (shelf and computer both go to 0) | >= 0 |
+| record_error_units | integer | Error drawn for the computer's stock on an error day | -3 to -1 or 1 to 3, otherwise 0; the real change can be smaller if the computer's stock would drop below 0 |
+| count_adjustment_units | integer | Correction made by a stock count: shelf minus computer | integer (positive or negative), 0 when there was no count |
 | end_stock_units | integer | Physical stock at the end of the day | >= 0 |
-| system_stock_units | integer | Stock the computer believes is on the shelf | integer; can differ from the shelf |
+| system_stock_units | integer | Stock the computer believes is on the shelf | >= 0 (the engine never lets it go below 0); can differ from the shelf |
 | ordered_units | integer | Units ordered that day | >= 0, whole packs, at least the minimum |
 | on_order_units | integer | Ordered units not yet arrived | >= 0 |
 
@@ -161,5 +167,5 @@ facts and dimensions get `relationships` tests (from Day 13).
 | purchase_order_id | varchar | The order it answers | exists in fct_purchase_orders |
 | store_id, item_id | varchar | What and where | exist in the dimensions |
 | arrival_date | date | Day the goods arrived | >= order_date |
-| delivered_units | integer | Quantity received | 0 to ordered_units |
+| delivered_units | integer | Quantity received | 1 to ordered_units (a partial delivery brings 60-90% of the order) |
 | days_late | integer | arrival_date minus expected_date | 0 to 4 |
