@@ -27,7 +27,92 @@ models:
         data_tests: [not_null]
       - name: d
         description: M5 day id (d_1, d_2, ...).
-        data_tests: [not_null]
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_m5_calendar')
+                field: d
       - name: demand_units
         description: Units customers wanted to buy that day.
+        data_tests: [not_null]
+
+  - name: stg_m5_calendar
+    description: One row per calendar day, with the Walmart week, events and SNAP flags.
+    columns:
+      - name: date
+        description: Calendar day.
+        data_tests: [unique, not_null]
+      - name: d
+        description: M5 day id (d_1, d_2, ...).
+        data_tests: [unique, not_null]
+      - name: wm_yr_wk
+        description: Walmart week id; joins the prices.
+        data_tests: [not_null]
+      - name: weekday
+        description: Name of the day.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+      - name: wday
+        description: Day number in the Walmart week (Saturday = 1).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7]
+                quote: false
+      - name: event_name_1
+        description: First event of the day; null if none.
+      - name: event_type_1
+        description: Type of the first event; null if none.
+      - name: event_name_2
+        description: Second event of the day; null if none (rare).
+      - name: event_type_2
+        description: Type of the second event; null if none (rare).
+      - name: snap_ca
+        description: 1 if SNAP purchases are allowed that day in California.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false
+      - name: snap_tx
+        description: Same for Texas.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false
+      - name: snap_wi
+        description: Same for Wisconsin.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false
+
+  - name: stg_m5_prices
+    description: >
+      Weekly sell price, one row per store, product and Walmart week.
+      A missing row means the product was not on sale that week.
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests: [not_null]
+      - name: item_id
+        description: Product identifier.
+        data_tests: [not_null]
+      - name: wm_yr_wk
+        description: Walmart week id.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_m5_calendar')
+                field: wm_yr_wk
+      - name: sell_price
+        description: Price in US dollars.
         data_tests: [not_null]
