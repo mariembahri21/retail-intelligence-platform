@@ -1,0 +1,48 @@
+version: 2
+
+sources:
+  - name: raw
+    description: M5 data as loaded by ingestion/load_m5.py
+    schema: raw
+    tables:
+      - name: sales
+        description: Units sold, one row per store, product and day (M5 sales, in long form).
+        columns:
+          - name: units
+            description: Units sold that day. Zero can mean no demand, not on sale, or a hidden stockout.
+            data_tests: [not_null]
+      - name: calendar
+        description: One row per day, with the Walmart week, events and SNAP flags.
+        columns:
+          - name: d
+            description: M5 day id (d_1, d_2, ...).
+            data_tests: [unique, not_null]
+      - name: prices
+        description: One row per store, product and Walmart week. A missing row means the product was not on sale.
+
+  - name: sim
+    description: Master data of the simulated retailer, built by simulation/master_data.py
+    schema: sim
+    tables:
+      - name: supplier
+        description: One row per supplier (10 rows).
+        columns:
+          - name: supplier_id
+            description: Supplier identifier.
+            data_tests: [unique, not_null]
+      - name: item_supply
+        description: One row per product (3,049 rows) with its supplier and ordering terms.
+        columns:
+          - name: item_id
+            description: Product identifier.
+            data_tests: [unique, not_null]
+
+  - name: sim_files
+    description: Parquet files written by simulation/run_simulation.py
+    meta:
+      external_location: "read_parquet('../data/processed/sim/{name}/*/*.parquet', hive_partitioning=false)"
+    tables:
+      - name: daily
+        description: Daily simulator output, one row per store, product and day.
+      - name: orders
+        description: Orders placed by the simulated shop, one row per order.
