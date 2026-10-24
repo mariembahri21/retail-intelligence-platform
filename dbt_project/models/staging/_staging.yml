@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: stg_m5_sales
+    description: >
+      M5 sales in long form, one row per store, product and day.
+      demand_units is what customers wanted to buy (the real M5 sales).
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests: [not_null]
+      - name: item_id
+        description: Product identifier.
+        data_tests: [not_null]
+      - name: dept_id
+        description: Department.
+        data_tests: [not_null]
+      - name: cat_id
+        description: Category (FOODS, HOUSEHOLD, HOBBIES).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['FOODS', 'HOUSEHOLD', 'HOBBIES']
+      - name: state_id
+        description: State of the store.
+        data_tests: [not_null]
+      - name: d
+        description: M5 day id (d_1, d_2, ...).
+        data_tests: [not_null]
+      - name: demand_units
+        description: Units customers wanted to buy that day.
+        data_tests: [not_null]
