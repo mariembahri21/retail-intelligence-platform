@@ -1,0 +1,156 @@
+version: 2
+
+models:
+  - name: dim_store
+    description: One row per store.
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests: [unique, not_null]
+      - name: state_id
+        description: US state of the store.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['CA', 'TX', 'WI']
+
+  - name: dim_supplier
+    description: One row per supplier, with its quoted lead time and reliability.
+    columns:
+      - name: supplier_id
+        description: Supplier identifier.
+        data_tests: [unique, not_null]
+      - name: cat_id
+        description: The only category this supplier serves.
+        data_tests: [not_null]
+      - name: quoted_lead_days
+        description: Days promised between order and delivery.
+        data_tests: [not_null]
+      - name: late_rate
+        description: Share of deliveries that arrive late (1-4 days).
+        data_tests: [not_null]
+      - name: partial_rate
+        description: Share of deliveries that arrive incomplete.
+        data_tests: [not_null]
+
+  - name: dim_product
+    description: One row per product, with its category, supplier and ordering terms.
+    columns:
+      - name: item_id
+        description: Product identifier.
+        data_tests: [unique, not_null]
+      - name: dept_id
+        description: Department.
+        data_tests: [not_null]
+      - name: cat_id
+        description: Category (FOODS, HOUSEHOLD, HOBBIES).
+        data_tests: [not_null]
+      - name: supplier_id
+        description: The product's supplier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_id
+      - name: pack_size
+        description: Units per pack; orders are whole packs.
+      - name: moq_packs
+        description: Minimum order, in packs.
+      - name: review_days
+        description: Days between two stock reviews.
+      - name: service_level
+        description: Target probability of not running out between two deliveries.
+      - name: z
+        description: Service-level factor of the ordering policy.
+
+  - name: dim_date
+    description: One row per calendar day, with attributes to slice reports by.
+    columns:
+      - name: date
+        description: Calendar day.
+        data_tests: [unique, not_null]
+      - name: d
+        description: M5 day id (d_1, d_2, ...).
+        data_tests: [unique, not_null]
+      - name: wm_yr_wk
+        description: Walmart week id; joins the prices.
+        data_tests: [not_null]
+      - name: year
+        description: Calendar year.
+      - name: quarter
+        description: Quarter of the year (1 to 4).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+                quote: false
+      - name: month
+        description: Month number (1 to 12).
+      - name: week_of_year
+        description: ISO week number.
+      - name: weekday
+        description: Name of the day.
+      - name: wday
+        description: Day number in the Walmart week (Saturday = 1).
+      - name: is_weekend
+        description: True on Saturday and Sunday.
+        data_tests: [not_null]
+      - name: is_event_day
+        description: True if at least one event falls on that day.
+        data_tests: [not_null]
+      - name: event_name_1
+        description: First event of the day; null if none.
+      - name: event_type_1
+        description: Type of the first event; null if none.
+      - name: event_name_2
+        description: Second event of the day; null if none (rare).
+      - name: event_type_2
+        description: Type of the second event; null if none (rare).
+      - name: snap_ca
+        description: 1 if SNAP purchases are allowed that day in California.
+      - name: snap_tx
+        description: Same for Texas.
+      - name: snap_wi
+        description: Same for Wisconsin.
+
+  - name: fct_sales
+    description: >
+      Demand fact, one row per store, product and day (the real M5 sales).
+      demand_units is what customers wanted to buy.
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_store')
+                field: store_id
+      - name: item_id
+        description: Product identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: item_id
+      - name: date
+        description: Calendar day.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date
+      - name: demand_units
+        description: What customers wanted to buy that day (the real M5 sales).
+        data_tests: [not_null]
+      - name: sell_price
+        description: Price that week; null if the product was not on sale.
+      - name: is_on_sale
+        description: A price exists for that store, product and week.
+        data_tests: [not_null]
+      - name: demand_amount
+        description: demand_units times sell_price; null if not on sale.

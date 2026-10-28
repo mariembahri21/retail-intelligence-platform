@@ -66,6 +66,7 @@ Each layer reads only from the previous one.
 | prices | end in `_price` | `sell_price` |
 | rates and shares | end in `_rate` | `late_rate`, `partial_rate` |
 | yes/no flags | start with `is_` or `was_` | `is_on_sale`, `was_cancelled` |
+| money amounts | end in `_amount` | `demand_amount` |
 
 Two exceptions come from the M5 data and keep its names: `d` and `wm_yr_wk` in `dim_date`.
 
@@ -108,6 +109,7 @@ facts and dimensions get `relationships` tests (from Day 13).
 | moq_packs | integer | Minimum order, in packs | 2 |
 | review_days | integer | Days between two stock reviews | FOODS 1, HOUSEHOLD 3, HOBBIES 7 |
 | z | double | Service-level factor of the ordering policy | 1.6449 (95%), 1.4051 (92%), 1.2816 (90%) |
+| service_level | double | Target probability of not running out between two deliveries | FOODS 0.95, HOUSEHOLD 0.92, HOBBIES 0.90 |
 
 ### dim_date (1,969 rows in the M5 calendar; our project uses 1,941 days)
 | Column | Type | Meaning | Allowed values |
@@ -121,6 +123,12 @@ facts and dimensions get `relationships` tests (from Day 13).
 | event_name_1, event_type_1 | varchar | First event of the day | empty if none |
 | event_name_2, event_type_2 | varchar | Second event of the day | usually empty |
 | snap_ca, snap_tx, snap_wi | integer | Food-assistance day in that state | 0 or 1 |
+| year | integer | Calendar year | real years |
+| quarter | integer | Quarter of the year | 1 to 4 |
+| month | integer | Month number | 1 to 12 |
+| week_of_year | integer | ISO week number | 1 to 53 |
+| is_weekend | boolean | Saturday or Sunday | true / false |
+| is_event_day | boolean | At least one event that day | true / false |
 
 ### fct_sales (grain: store x product x day)
 | Column | Type | Meaning | Allowed values |
@@ -129,6 +137,7 @@ facts and dimensions get `relationships` tests (from Day 13).
 | demand_units | integer | What customers wanted to buy (real M5 sales) | >= 0 |
 | sell_price | double | Price that week | null = not on sale |
 | is_on_sale | boolean | A price exists for that week | true / false |
+| demand_amount | double | demand_units times sell_price | null when not on sale |
 
 ### fct_inventory_daily (grain: store x product x day)
 | Column | Type | Meaning | Allowed values |
