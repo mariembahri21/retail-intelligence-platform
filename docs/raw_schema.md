@@ -14,7 +14,7 @@ The `raw` schema in DuckDB (`data/processed/retail.duckdb`) holds the M5 data **
 | `cat_id` | VARCHAR | Category (FOODS, HOUSEHOLD, HOBBIES) |
 | `store_id` | VARCHAR | Store identifier |
 | `state_id` | VARCHAR | State of the store |
-| `d` | VARCHAR | Day id as received (`d_1` to `d_1941`), converted to a date later in staging |
+| `d` | VARCHAR | Day id as received (`d_1` to `d_1941`), converted to a date later in the core layer |
 | `units` | INTEGER | Units sold that day |
 
 ## raw.calendar
