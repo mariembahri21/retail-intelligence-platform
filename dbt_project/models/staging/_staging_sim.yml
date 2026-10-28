@@ -1,0 +1,147 @@
+version: 2
+
+models:
+  - name: stg_sim_supplier
+    description: One row per supplier, with its quoted lead time and reliability.
+    columns:
+      - name: supplier_id
+        description: Supplier identifier.
+        data_tests: [unique, not_null]
+      - name: cat_id
+        description: The only category this supplier serves.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['FOODS', 'HOUSEHOLD', 'HOBBIES']
+      - name: quoted_lead_days
+        description: Days promised between order and delivery.
+        data_tests: [not_null]
+      - name: late_rate
+        description: Share of deliveries that arrive late (1-4 days).
+        data_tests: [not_null]
+      - name: partial_rate
+        description: Share of deliveries that arrive incomplete.
+        data_tests: [not_null]
+
+  - name: stg_sim_item_supply
+    description: One row per product, with its supplier and ordering terms.
+    columns:
+      - name: item_id
+        description: Product identifier.
+        data_tests: [unique, not_null]
+      - name: dept_id
+        description: Department.
+        data_tests: [not_null]
+      - name: cat_id
+        description: Category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['FOODS', 'HOUSEHOLD', 'HOBBIES']
+      - name: supplier_id
+        description: The product's supplier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_sim_supplier')
+                field: supplier_id
+      - name: pack_size
+        description: Units per pack.
+        data_tests: [not_null]
+      - name: moq_packs
+        description: Minimum order, in packs.
+        data_tests: [not_null]
+      - name: review_days
+        description: Days between two stock reviews.
+        data_tests: [not_null]
+      - name: service_level
+        description: Target probability of not running out between two deliveries.
+        data_tests: [not_null]
+      - name: z
+        description: Service-level factor of the ordering policy.
+        data_tests: [not_null]
+
+  - name: stg_sim_daily
+    description: >
+      Daily output of the simulator, one row per store, product and day.
+      Same grain as stg_m5_sales.
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests: [not_null]
+      - name: item_id
+        description: Product identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_sim_item_supply')
+                field: item_id
+      - name: date
+        description: Calendar day.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_m5_calendar')
+                field: date
+      - name: is_on_sale
+        description: Product is on sale that day.
+        data_tests: [not_null]
+      - name: demand_units
+        description: Customer demand that day (the real M5 sales).
+        data_tests: [not_null]
+      - name: sold_units
+        description: Units the shelf really sold.
+        data_tests: [not_null]
+      - name: lost_sales_units
+        description: Demand minus sold units; above 0 means a stockout.
+        data_tests: [not_null]
+      - name: end_stock_units
+        description: Physical stock at the end of the day.
+        data_tests: [not_null]
+      - name: system_stock_units
+        description: Stock the computer believes is on the shelf.
+        data_tests: [not_null]
+
+  - name: stg_sim_orders
+    description: Orders placed by the simulated shop, one row per order.
+    columns:
+      - name: purchase_order_id
+        description: Order identifier, made by us from store, product and order date.
+        data_tests: [unique, not_null]
+      - name: store_id
+        description: Store identifier.
+        data_tests: [not_null]
+      - name: item_id
+        description: Product identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_sim_item_supply')
+                field: item_id
+      - name: order_date
+        description: Day the order was placed.
+        data_tests: [not_null]
+      - name: expected_date
+        description: Day the delivery was promised.
+        data_tests: [not_null]
+      - name: arrival_date
+        description: Day the delivery arrives (expected date plus days late).
+        data_tests: [not_null]
+      - name: ordered_units
+        description: Quantity ordered.
+        data_tests: [not_null]
+      - name: delivered_units
+        description: Quantity the supplier delivers (less than ordered if partial).
+        data_tests: [not_null]
+      - name: days_late
+        description: Days between the promised date and the arrival.
+        data_tests: [not_null]
+      - name: was_cancelled
+        description: Order cancelled because the product left the shelf.
+        data_tests: [not_null]
