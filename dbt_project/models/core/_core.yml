@@ -300,3 +300,52 @@ models:
         description: Quantity received is at least the quantity ordered.
       - name: is_otif
         description: On time and in full.
+
+  
+  - name: dim_product_class
+    description: >
+      ABC (importance) and XYZ (predictability) class of each product in each store,
+      over the last 52 weeks ending on the clock date.
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_store')
+                field: store_id
+      - name: item_id
+        description: Product identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: item_id
+      - name: revenue_amount_52w
+        description: Value of the demand in the last 52 weeks.
+        data_tests: [not_null]
+      - name: revenue_rank
+        description: Rank by revenue within the store (1 = best).
+        data_tests: [not_null]
+      - name: cumulative_revenue_share
+        description: Share of the store's revenue made by this product and all better ones.
+      - name: abc_class
+        description: A (first 80% of revenue), B (next 15%), C (last 5%).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['A', 'B', 'C']
+      - name: active_weeks
+        description: Weeks (out of 52) in which the product was on sale.
+        data_tests: [not_null]
+      - name: weekly_demand_cv
+        description: Standard deviation divided by the mean of weekly demand, over active weeks.
+      - name: xyz_class
+        description: X below 0.5, Y below 1.0, Z from 1.0; null with fewer than 4 active weeks.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['X', 'Y', 'Z']   

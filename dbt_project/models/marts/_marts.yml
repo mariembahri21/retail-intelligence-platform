@@ -1,0 +1,90 @@
+version: 2
+
+models:
+  - name: mart_sales_daily
+    description: >
+      Sales per day for dashboards, one row per store, category and day.
+      revenue + lost_revenue = demand_amount.
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_store')
+                field: store_id
+      - name: cat_id
+        description: Category (FOODS, HOUSEHOLD, HOBBIES).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['FOODS', 'HOUSEHOLD', 'HOBBIES']
+      - name: date
+        description: Calendar day.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date
+      - name: demand_units
+        description: Units customers wanted to buy.
+        data_tests: [not_null]
+      - name: sold_units
+        description: Units the shelf really sold.
+        data_tests: [not_null]
+      - name: lost_sales_units
+        description: Demand that could not be served.
+        data_tests: [not_null]
+      - name: demand_amount
+        description: Value of the demand (units x price); products not on sale count as 0.
+      - name: revenue
+        description: Value of the units really sold.
+      - name: lost_revenue
+        description: Value of the lost sales.
+      - name: avg_price
+        description: Average price of the demand of products that were on sale.
+
+  - name: mart_product_performance
+    description: >
+      One row per store and product over the last 52 weeks, with ABC and XYZ classes
+      and a 28-day trend.
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests: [not_null]
+      - name: item_id
+        description: Product identifier.
+        data_tests: [not_null]
+      - name: cat_id
+        description: Category.
+        data_tests: [not_null]
+      - name: abc_class
+        description: A, B or C by share of the store's revenue.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['A', 'B', 'C']
+      - name: xyz_class
+        description: X, Y or Z by variability of weekly demand; null if there is not enough history.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['X', 'Y', 'Z']
+      - name: units_52w
+        description: Units demanded in the last 52 weeks.
+      - name: revenue_amount_52w
+        description: Value of the demand in the last 52 weeks.
+      - name: revenue_rank
+        description: Rank by revenue within the store (1 = best).
+      - name: cumulative_revenue_share
+        description: Share of the store's revenue made by this product and all better ones.
+      - name: units_last_28d
+        description: Units demanded in the last 28 days.
+      - name: units_prev_28d
+        description: Units demanded in the 28 days before that.
+      - name: trend_28d
+        description: Change of the last 28 days against the 28 days before; null if there were no sales before.

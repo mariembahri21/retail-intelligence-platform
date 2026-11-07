@@ -26,7 +26,9 @@ with a path relative to `dbt_project/`. Notebooks and apps query the core tables
 | `fct_inventory_daily` | one store x product x day | `store_id, item_id, date` | simulator `daily` output |
 | `fct_purchase_orders` | one order placed | `purchase_order_id` (made by us) | simulator `orders` output |
 | `fct_deliveries` | one delivery received (one per delivered order) | `delivery_id` (made by us) | simulator `orders` output |
-
+| `dim_product_class` | one store x product (last 52 weeks to the clock date) | `store_id, item_id` | `fct_sales` |
+| `mart_sales_daily` | one store x category x day | `store_id, cat_id, date` | core facts |
+| `mart_product_performance` | one store x product (last 52 weeks) | `store_id, item_id` | `dim_product_class`, `fct_sales` |
 ### Rules
 
 - `fct_sales` and `fct_inventory_daily` share a grain, so they join one-to-one.
@@ -204,3 +206,20 @@ fct_deliveries (add after delivered_units; change the "Allowed values" of delive
 | is_otif | boolean | On time and in full, no tolerance | true / false |
 
 “Not included: cancelled orders, and orders that would arrive after the last simulated day.”
+
+-- Product classes, one row per store and product, over the last 52 weeks
+-- (364 days ending on the latest loaded day, i.e. the clock date).
+--
+-- ABC (importance, by revenue within each store):
+--   A = the products that make the first 80% of the store's revenue,
+--   B = the next 15%, C = the last 5% (including products with no revenue).
+--   A product is A, B or C according to the share of revenue BEFORE it is added,
+--   so the product that crosses the 80% line is still an A.
+--
+-- XYZ (predictability, by the coefficient of variation of weekly demand):
+--   X below 0.5, Y from 0.5 to below 1.0, Z from 1.0 up.
+--   Only weeks in which the product was on sale count, and a product needs at
+--   least 4 such weeks; otherwise xyz_class is null (not enough history).
+--
+-- Revenue here is demand_amount (demand x price): the value of what customers wanted,
+-- so a product is not penalised because it ran out of stock.
