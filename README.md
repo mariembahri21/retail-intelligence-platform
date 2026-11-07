@@ -26,6 +26,11 @@ Real demand comes from the M5 (Walmart) dataset. Inventory, supplier deliveries 
 ## Key findings
 - Overstock is concentrated in slow sellers: class C products are overstocked on 58 to 92% of days, against 15 to 38% for class A. HOUSEHOLD is the extreme case, because its pack size (12) and minimum order (2 packs) are large compared with its demand.
 
+## Data warehouse
+- The warehouse is built with dbt on DuckDB, in four layers: raw, staging, core and marts. Every core fact has an enforced data contract and automated tests (generic and custom), and the clock gate stops the sealed live test period from leaking into any table.
+
+   ![Lineage graph](docs/lineage.png)
+
 ## How to run it
 
 **1. Set up the environment** (Windows PowerShell):
