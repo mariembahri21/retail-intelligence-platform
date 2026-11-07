@@ -21,15 +21,15 @@ that prove the numbers agree. Every check is an automatic dbt test: if one break
 
 | Measure | Value |
 |---|---|
-| Rows in `fct_sales` | 17754327 |
-| Rows in `fct_inventory_daily` | 17754327 |
-| Orders placed | 1023759 |
-| Orders cancelled (product left the shelf) | 0 |
-| Deliveries | 1021489 |
-| Orders still on the way when the data ends (orders_placed - orders_cancelled - deliveries) | 1023759 - 0 - 1021489 |
-| Units delivered / units received in stock | 17904775 / 17904775 |
+| Rows in `fct_sales` | 14763258 |
+| Rows in `fct_inventory_daily` | 14763258 |
+| Orders placed | 812186 |
+| Orders not delivered by the clock date (cancelled, or still on the way) | orders_placed - deliveries = 1662 |
+| Deliveries | 810524 |
+| Orders still on the way when the data ends (orders_placed - deliveries) | 1662|
+| Units delivered / units received in stock | 14763258 / 14763258 |
 
-Order flow: orders placed = cancelled + delivered + still on the way.
+Order flow: orders placed = delivered + not delivered yet.
 
 ## Supply-chain measures by category
 

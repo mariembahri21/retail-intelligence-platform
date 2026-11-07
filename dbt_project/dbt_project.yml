@@ -17,3 +17,6 @@ models:
       +materialized: table
     marts:
       +materialized: table
+
+vars:
+  as_of_date: "2015-06-30"   # the clock: the last development day (see config.yaml periods)

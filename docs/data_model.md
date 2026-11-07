@@ -43,6 +43,14 @@ with a path relative to `dbt_project/`. Notebooks and apps query the core tables
   live in `dim_supplier`; the lateness of one delivery lives in `fct_deliveries`.
 - Planned later: `fct_demand_forecast`, `fct_stockout_risk`, `fct_recommendations`
   (grain: store x product x day, plus a run or model version).
+- The clock: every core fact is loaded only up to the date in the dbt variable `as_of_date`
+  (default 2015-06-30, the last development day). Core facts are incremental: a run
+  reloads the last loaded day and everything after it, and the unique key replaces rows
+  instead of duplicating them.
+- Staging models contain all days, including the future. Marts, notebooks, models and
+  dashboards read the core tables only.
+- `fct_purchase_orders` has no cancellation flag: whether an order will be cancelled is only
+  known later. `fct_deliveries` holds only orders that have already arrived.
 
 ## Naming conventions
 
@@ -170,7 +178,7 @@ facts and dimensions get `relationships` tests (from Day 13).
 | order_date | date | Day the order was placed | development or live days |
 | expected_date | date | Day the delivery is promised | >= order_date |
 | ordered_units | integer | Quantity ordered | whole packs, >= 2 packs |
-| was_cancelled | boolean | Order cancelled because the product left the shelf | true / false |
+
 
 ### fct_deliveries (grain: one delivery received)
 | Column | Type | Meaning | Allowed values |

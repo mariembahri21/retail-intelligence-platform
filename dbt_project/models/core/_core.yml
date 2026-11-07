@@ -246,9 +246,7 @@ models:
       - name: ordered_units
         description: Quantity ordered (whole packs).
         data_tests: [not_null]
-      - name: was_cancelled
-        description: Order cancelled because the product left the shelf.
-        data_tests: [not_null]
+
 
   - name: fct_deliveries
     description: >

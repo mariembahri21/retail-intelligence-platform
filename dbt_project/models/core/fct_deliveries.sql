@@ -1,8 +1,15 @@
--- Delivery fact: one row per delivery received (one per delivered order).
+{{ config(
+    materialized='incremental',
+    unique_key='delivery_id',
+    incremental_strategy='delete+insert'
+) }}
+
+-- Delivery fact: one row per delivery received (one per delivered order),
+-- loaded up to the clock date by arrival date.
 --
 -- Not included:
 --   - cancelled orders (the product left the shelf, nothing arrived);
---   - orders that would arrive after the last simulated day.
+--   - orders that arrive after the clock date (they have not arrived yet).
 --
 -- On time : the delivery arrives on the promised day (days_late = 0).
 -- In full : the quantity received is at least the quantity ordered.
@@ -25,4 +32,7 @@ select
     (days_late = 0 and delivered_units >= ordered_units) as is_otif
 from {{ ref('stg_sim_orders') }}
 where not was_cancelled
-  and arrival_date <= (select max(date) from {{ ref('stg_sim_daily') }})
+  and arrival_date <= cast('{{ var("as_of_date") }}' as date)
+{% if is_incremental() %}
+  and arrival_date >= (select max(arrival_date) from {{ this }})
+{% endif %}
