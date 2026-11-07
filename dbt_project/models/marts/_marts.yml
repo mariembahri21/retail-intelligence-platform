@@ -88,3 +88,79 @@ models:
         description: Units demanded in the 28 days before that.
       - name: trend_28d
         description: Change of the last 28 days against the 28 days before; null if there were no sales before.
+  
+  - name: mart_inventory_health
+    description: >
+      Inventory health per store, product and week (Monday start), on-sale days only:
+      stock level, turnover, days of cover, overstock, waste and stockouts.
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests: [not_null]
+      - name: item_id
+        description: Product identifier.
+        data_tests: [not_null]
+      - name: week_start_date
+        description: Monday of the week.
+        data_tests: [not_null]
+      - name: days_on_sale
+        description: Days of the week on which the product was on sale (1 to 7).
+        data_tests: [not_null]
+      - name: demand_units
+        description: Units customers wanted that week.
+      - name: sold_units
+        description: Units really sold.
+      - name: lost_sales_units
+        description: Demand that could not be served.
+      - name: avg_stock_units
+        description: Average end-of-day shelf stock.
+      - name: turnover
+        description: Units sold divided by average stock; null if the average stock is 0.
+      - name: days_of_cover
+        description: Average stock divided by average daily demand; null if there was no demand.
+      - name: overstock_day_rate
+        description: Share of days with stock above 28 days of cover.
+      - name: waste_units
+        description: Expired + shrunk + cleared units.
+      - name: waste_rate
+        description: Lost units divided by (units sold + lost units).
+      - name: stockout_day_rate
+        description: Share of days with lost sales.
+
+  - name: mart_supplier_performance
+    description: >
+      Supplier reliability per month of arrival: on time, in full, OTIF, fill rate,
+      lateness and lead-time variability.
+    columns:
+      - name: supplier_id
+        description: Supplier identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_id
+      - name: month_start_date
+        description: First day of the month of arrival.
+        data_tests: [not_null]
+      - name: deliveries
+        description: Number of deliveries received.
+        data_tests: [not_null]
+      - name: ordered_units
+        description: Units ordered on those deliveries' orders.
+      - name: delivered_units
+        description: Units received.
+      - name: fill_rate
+        description: Units delivered divided by units ordered.
+      - name: on_time_rate
+        description: Share of deliveries that arrived on the promised day.
+      - name: in_full_rate
+        description: Share of deliveries that brought everything ordered.
+      - name: otif_rate
+        description: Share of deliveries that were on time and in full.
+      - name: avg_days_late
+        description: Average days late (0 when on time).
+      - name: avg_lead_days
+        description: Average real lead time in days.
+      - name: lead_time_sd
+        description: Standard deviation of the real lead time; null with one delivery.

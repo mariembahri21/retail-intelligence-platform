@@ -92,7 +92,7 @@ def run_dbt_build(as_of, dbt_dir=DBT_DIR):
     dbt = shutil.which("dbt")
     if dbt is None:
         raise ClockError("dbt was not found. Activate the virtual environment first.")
-    command = [dbt, "build", "--select", "core", "--profiles-dir", ".",
+    command = [dbt, "build", "--select", "core", "marts", "--profiles-dir", ".",
                "--vars", json.dumps({"as_of_date": as_of.isoformat()})]
     result = subprocess.run(command, cwd=dbt_dir)
     if result.returncode != 0:

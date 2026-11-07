@@ -29,6 +29,10 @@ with a path relative to `dbt_project/`. Notebooks and apps query the core tables
 | `dim_product_class` | one store x product (last 52 weeks to the clock date) | `store_id, item_id` | `fct_sales` |
 | `mart_sales_daily` | one store x category x day | `store_id, cat_id, date` | core facts |
 | `mart_product_performance` | one store x product (last 52 weeks) | `store_id, item_id` | `dim_product_class`, `fct_sales` |
+| `mart_inventory_health` | one store x product x week (on-sale days only) | `store_id, item_id, week_start_date` | `fct_inventory_daily` |
+| `mart_supplier_performance` | one supplier x month of arrival | `supplier_id, month_start_date` | `fct_deliveries`, `dim_product` |
+ overstock means more than 28 days of cover, OTIF has no tolerance, and there is no inventory value because M5 has no costs.
+
 ### Rules
 
 - `fct_sales` and `fct_inventory_daily` share a grain, so they join one-to-one.
