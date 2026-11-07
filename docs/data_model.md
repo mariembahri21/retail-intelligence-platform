@@ -178,3 +178,18 @@ facts and dimensions get `relationships` tests (from Day 13).
 | arrival_date | date | Day the goods arrived | >= order_date |
 | delivered_units | integer | Quantity received | 1 to ordered_units (a partial delivery brings 60-90% of the order) |
 | days_late | integer | arrival_date minus expected_date | 0 to 4 |
+
+fct_inventory_daily:
+| is_stockout | boolean | Demand could not be fully served | true when lost_sales_units > 0 |
+| stock_gap_units | integer | system_stock_units minus end_stock_units (ghost units in the computer) | integer, positive = phantom stock |
+
+fct_deliveries (add after delivered_units; change the "Allowed values" of delivered_units to match):
+| ordered_units | integer | Quantity ordered on the order | whole packs |
+| promised_lead_days | integer | Days between the order and the promised date | FOODS 2, HOUSEHOLD 4, HOBBIES 7 |
+| actual_lead_days | integer | Days between the order and the arrival | promised + 0 to 4 |
+| fill_rate | double | delivered_units / ordered_units | above 0, up to 1 |
+| is_on_time | boolean | Arrived on the promised day | true / false |
+| is_in_full | boolean | Received at least the quantity ordered | true / false |
+| is_otif | boolean | On time and in full, no tolerance | true / false |
+
+“Not included: cancelled orders, and orders that would arrive after the last simulated day.”

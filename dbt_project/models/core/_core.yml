@@ -154,3 +154,151 @@ models:
         data_tests: [not_null]
       - name: demand_amount
         description: demand_units times sell_price; null if not on sale.
+
+
+  
+  - name: fct_inventory_daily
+    description: >
+      Inventory fact, one row per store, product and day (the simulator's daily
+      record). Same grain as fct_sales. A stockout is a day with lost sales.
+    columns:
+      - name: store_id
+        description: Store identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_store')
+                field: store_id
+      - name: item_id
+        description: Product identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: item_id
+      - name: date
+        description: Calendar day.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date
+      - name: is_on_sale
+        description: Product is on sale that day.
+        data_tests: [not_null]
+      - name: demand_units
+        description: Customer demand that day.
+        data_tests: [not_null]
+      - name: sold_units
+        description: Units the shelf really sold.
+        data_tests: [not_null]
+      - name: lost_sales_units
+        description: Demand minus sold units.
+        data_tests: [not_null]
+      - name: end_stock_units
+        description: Physical stock at the end of the day.
+        data_tests: [not_null]
+      - name: system_stock_units
+        description: Stock the computer believes is on the shelf.
+        data_tests: [not_null]
+      - name: is_stockout
+        description: True when demand could not be fully served (lost_sales_units above 0).
+        data_tests: [not_null]
+      - name: stock_gap_units
+        description: system_stock_units minus end_stock_units; positive means ghost units in the computer.
+
+  - name: fct_purchase_orders
+    description: One row per order placed; the expectation, not the outcome.
+    columns:
+      - name: purchase_order_id
+        description: Order identifier, made by us.
+        data_tests: [unique, not_null]
+      - name: store_id
+        description: Store identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_store')
+                field: store_id
+      - name: item_id
+        description: Product identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: item_id
+      - name: order_date
+        description: Day the order was placed.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date
+      - name: expected_date
+        description: Day the delivery is promised.
+        data_tests: [not_null]
+      - name: ordered_units
+        description: Quantity ordered (whole packs).
+        data_tests: [not_null]
+      - name: was_cancelled
+        description: Order cancelled because the product left the shelf.
+        data_tests: [not_null]
+
+  - name: fct_deliveries
+    description: >
+      One row per delivery received (one per delivered order). Cancelled orders and
+      orders arriving after the last simulated day are not included.
+    columns:
+      - name: delivery_id
+        description: Delivery identifier, made by us.
+        data_tests: [unique, not_null]
+      - name: purchase_order_id
+        description: The order this delivery answers.
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_purchase_orders')
+                field: purchase_order_id
+      - name: store_id
+        description: Store identifier.
+        data_tests: [not_null]
+      - name: item_id
+        description: Product identifier.
+        data_tests: [not_null]
+      - name: arrival_date
+        description: Day the goods arrived.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date
+      - name: ordered_units
+        description: Quantity ordered.
+        data_tests: [not_null]
+      - name: delivered_units
+        description: Quantity received.
+        data_tests: [not_null]
+      - name: days_late
+        description: Arrival date minus the promised date.
+        data_tests: [not_null]
+      - name: promised_lead_days
+        description: Days between the order and the promised date.
+      - name: actual_lead_days
+        description: Days between the order and the arrival.
+      - name: fill_rate
+        description: delivered_units divided by ordered_units.
+      - name: is_on_time
+        description: Arrived on the promised day.
+      - name: is_in_full
+        description: Quantity received is at least the quantity ordered.
+      - name: is_otif
+        description: On time and in full.
