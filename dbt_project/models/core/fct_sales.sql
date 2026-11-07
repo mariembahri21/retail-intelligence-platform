@@ -1,7 +1,8 @@
 {{ config(
     materialized='incremental',
     unique_key=['store_id', 'item_id', 'date'],
-    incremental_strategy='delete+insert'
+    incremental_strategy='delete+insert',
+    on_schema_change='fail'
 ) }}
 
 -- Demand fact: one row per store, product and day (the real M5 sales).
@@ -14,13 +15,13 @@
 -- rows instead of duplicating them.
 
 select
-    s.store_id,
-    s.item_id,
-    c.date,
-    s.demand_units,
-    p.sell_price,
+    cast(s.store_id as varchar) as store_id,
+    cast(s.item_id as varchar) as item_id,
+    cast(c.date as date) as date,
+    cast(s.demand_units as integer) as demand_units,
+    cast(p.sell_price as decimal(8, 2)) as sell_price,
     (p.sell_price is not null) as is_on_sale,
-    s.demand_units * p.sell_price as demand_amount
+    cast(s.demand_units * p.sell_price as decimal(18, 2)) as demand_amount
 from {{ ref('stg_m5_sales') }} as s
 join {{ ref('stg_m5_calendar') }} as c on c.d = s.d
 left join {{ ref('stg_m5_prices') }} as p

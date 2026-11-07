@@ -16,11 +16,15 @@ Real demand comes from the M5 (Walmart) dataset. Inventory, supplier deliveries 
 - [x] Simulation engine, first version (one product)
 - [x] Late and partial deliveries
 - [x] Losses and stock counts
-- [x] Simulation run for all products
-- [ ] Retail operations simulator
+-  Simulation run for all products
+- [x] Retail operations simulator
+- [x] Incremental core facts and the platform clock”
 - [ ] Data warehouse with dbt
 - [ ] Demand forecasting and stockout prediction
 - [ ] Dashboards and daily pipeline
+
+## Key findings
+- Overstock is concentrated in slow sellers: class C products are overstocked on 58 to 92% of days, against 15 to 38% for class A. HOUSEHOLD is the extreme case, because its pack size (12) and minimum order (2 packs) are large compared with its demand.
 
 ## How to run it
 

@@ -119,8 +119,12 @@ models:
     description: >
       Demand fact, one row per store, product and day (the real M5 sales).
       demand_units is what customers wanted to buy.
+    config:
+      contract:
+        enforced: true
     columns:
       - name: store_id
+        data_type: varchar
         description: Store identifier.
         data_tests:
           - not_null
@@ -129,6 +133,7 @@ models:
                 to: ref('dim_store')
                 field: store_id
       - name: item_id
+        data_type: varchar
         description: Product identifier.
         data_tests:
           - not_null
@@ -137,6 +142,7 @@ models:
                 to: ref('dim_product')
                 field: item_id
       - name: date
+        data_type: date
         description: Calendar day.
         data_tests:
           - not_null
@@ -145,24 +151,30 @@ models:
                 to: ref('dim_date')
                 field: date
       - name: demand_units
+        data_type: integer
         description: What customers wanted to buy that day (the real M5 sales).
         data_tests: [not_null]
       - name: sell_price
+        data_type: decimal(8,2)
         description: Price that week; null if the product was not on sale.
       - name: is_on_sale
+        data_type: boolean
         description: A price exists for that store, product and week.
         data_tests: [not_null]
       - name: demand_amount
+        data_type: decimal(18,2)
         description: demand_units times sell_price; null if not on sale.
 
-
-  
   - name: fct_inventory_daily
     description: >
       Inventory fact, one row per store, product and day (the simulator's daily
       record). Same grain as fct_sales. A stockout is a day with lost sales.
+    config:
+      contract:
+        enforced: true
     columns:
       - name: store_id
+        data_type: varchar
         description: Store identifier.
         data_tests:
           - not_null
@@ -171,6 +183,7 @@ models:
                 to: ref('dim_store')
                 field: store_id
       - name: item_id
+        data_type: varchar
         description: Product identifier.
         data_tests:
           - not_null
@@ -179,6 +192,7 @@ models:
                 to: ref('dim_product')
                 field: item_id
       - name: date
+        data_type: date
         description: Calendar day.
         data_tests:
           - not_null
@@ -187,36 +201,85 @@ models:
                 to: ref('dim_date')
                 field: date
       - name: is_on_sale
+        data_type: boolean
         description: Product is on sale that day.
         data_tests: [not_null]
+      - name: opening_units
+        data_type: integer
+        description: Launch delivery (not an order), on the first day of each on-sale stretch.
+        data_tests: [not_null]
+      - name: received_units
+        data_type: integer
+        description: Units that arrived from orders (does not include opening_units).
+        data_tests: [not_null]
       - name: demand_units
+        data_type: integer
         description: Customer demand that day.
         data_tests: [not_null]
       - name: sold_units
+        data_type: integer
         description: Units the shelf really sold.
         data_tests: [not_null]
       - name: lost_sales_units
+        data_type: integer
         description: Demand minus sold units.
         data_tests: [not_null]
+      - name: expired_units
+        data_type: integer
+        description: Units thrown away because they expired (FOODS only).
+        data_tests: [not_null]
+      - name: shrunk_units
+        data_type: integer
+        description: Units lost to theft or damage (the computer does not see them).
+        data_tests: [not_null]
+      - name: cleared_units
+        data_type: integer
+        description: Stock removed on the first day after the product leaves the shelf.
+        data_tests: [not_null]
+      - name: record_error_units
+        data_type: integer
+        description: Error in the computer's stock on an error day (0 otherwise).
+        data_tests: [not_null]
+      - name: count_adjustment_units
+        data_type: integer
+        description: Correction made by a stock count (shelf minus computer); 0 without a count.
+        data_tests: [not_null]
       - name: end_stock_units
+        data_type: integer
         description: Physical stock at the end of the day.
         data_tests: [not_null]
       - name: system_stock_units
+        data_type: integer
         description: Stock the computer believes is on the shelf.
         data_tests: [not_null]
+      - name: ordered_units
+        data_type: integer
+        description: Units ordered that day.
+        data_tests: [not_null]
+      - name: on_order_units
+        data_type: integer
+        description: Ordered units that have not arrived yet.
+        data_tests: [not_null]
       - name: is_stockout
+        data_type: boolean
         description: True when demand could not be fully served (lost_sales_units above 0).
         data_tests: [not_null]
       - name: stock_gap_units
+        data_type: integer
         description: system_stock_units minus end_stock_units; positive means ghost units in the computer.
 
   - name: fct_purchase_orders
     description: One row per order placed; the expectation, not the outcome.
+    config:
+      contract:
+        enforced: true
     columns:
       - name: purchase_order_id
+        data_type: varchar
         description: Order identifier, made by us.
         data_tests: [unique, not_null]
       - name: store_id
+        data_type: varchar
         description: Store identifier.
         data_tests:
           - not_null
@@ -225,6 +288,7 @@ models:
                 to: ref('dim_store')
                 field: store_id
       - name: item_id
+        data_type: varchar
         description: Product identifier.
         data_tests:
           - not_null
@@ -233,6 +297,7 @@ models:
                 to: ref('dim_product')
                 field: item_id
       - name: order_date
+        data_type: date
         description: Day the order was placed.
         data_tests:
           - not_null
@@ -241,22 +306,28 @@ models:
                 to: ref('dim_date')
                 field: date
       - name: expected_date
+        data_type: date
         description: Day the delivery is promised.
         data_tests: [not_null]
       - name: ordered_units
+        data_type: integer
         description: Quantity ordered (whole packs).
         data_tests: [not_null]
-
 
   - name: fct_deliveries
     description: >
       One row per delivery received (one per delivered order). Cancelled orders and
       orders arriving after the last simulated day are not included.
+    config:
+      contract:
+        enforced: true
     columns:
       - name: delivery_id
+        data_type: varchar
         description: Delivery identifier, made by us.
         data_tests: [unique, not_null]
       - name: purchase_order_id
+        data_type: varchar
         description: The order this delivery answers.
         data_tests:
           - unique
@@ -266,12 +337,15 @@ models:
                 to: ref('fct_purchase_orders')
                 field: purchase_order_id
       - name: store_id
+        data_type: varchar
         description: Store identifier.
         data_tests: [not_null]
       - name: item_id
+        data_type: varchar
         description: Product identifier.
         data_tests: [not_null]
       - name: arrival_date
+        data_type: date
         description: Day the goods arrived.
         data_tests:
           - not_null
@@ -280,28 +354,36 @@ models:
                 to: ref('dim_date')
                 field: date
       - name: ordered_units
+        data_type: integer
         description: Quantity ordered.
         data_tests: [not_null]
       - name: delivered_units
+        data_type: integer
         description: Quantity received.
         data_tests: [not_null]
       - name: days_late
+        data_type: integer
         description: Arrival date minus the promised date.
         data_tests: [not_null]
       - name: promised_lead_days
+        data_type: bigint
         description: Days between the order and the promised date.
       - name: actual_lead_days
+        data_type: bigint
         description: Days between the order and the arrival.
       - name: fill_rate
+        data_type: double
         description: delivered_units divided by ordered_units.
       - name: is_on_time
+        data_type: boolean
         description: Arrived on the promised day.
       - name: is_in_full
+        data_type: boolean
         description: Quantity received is at least the quantity ordered.
       - name: is_otif
+        data_type: boolean
         description: On time and in full.
 
-  
   - name: dim_product_class
     description: >
       ABC (importance) and XYZ (predictability) class of each product in each store,
@@ -348,4 +430,4 @@ models:
         data_tests:
           - accepted_values:
               arguments:
-                values: ['X', 'Y', 'Z']   
+                values: ['X', 'Y', 'Z']

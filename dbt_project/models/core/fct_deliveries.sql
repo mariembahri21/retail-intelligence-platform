@@ -1,7 +1,8 @@
 {{ config(
     materialized='incremental',
     unique_key='delivery_id',
-    incremental_strategy='delete+insert'
+    incremental_strategy='delete+insert',
+    on_schema_change='fail'
 ) }}
 
 -- Delivery fact: one row per delivery received (one per delivered order),
@@ -16,17 +17,17 @@
 -- OTIF    : on time AND in full. No tolerance is applied.
 
 select
-    md5('delivery|' || purchase_order_id) as delivery_id,
-    purchase_order_id,
-    store_id,
-    item_id,
-    arrival_date,
-    ordered_units,
-    delivered_units,
-    days_late,
-    date_diff('day', order_date, expected_date) as promised_lead_days,
-    date_diff('day', order_date, arrival_date) as actual_lead_days,
-    delivered_units * 1.0 / ordered_units as fill_rate,
+    cast(md5('delivery|' || purchase_order_id) as varchar) as delivery_id,
+    cast(purchase_order_id as varchar) as purchase_order_id,
+    cast(store_id as varchar) as store_id,
+    cast(item_id as varchar) as item_id,
+    cast(arrival_date as date) as arrival_date,
+    cast(ordered_units as integer) as ordered_units,
+    cast(delivered_units as integer) as delivered_units,
+    cast(days_late as integer) as days_late,
+    cast(date_diff('day', order_date, expected_date) as bigint) as promised_lead_days,
+    cast(date_diff('day', order_date, arrival_date) as bigint) as actual_lead_days,
+    cast(delivered_units * 1.0 / ordered_units as double) as fill_rate,
     days_late = 0 as is_on_time,
     delivered_units >= ordered_units as is_in_full,
     (days_late = 0 and delivered_units >= ordered_units) as is_otif
