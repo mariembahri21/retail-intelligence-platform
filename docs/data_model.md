@@ -11,6 +11,9 @@
 
 Each layer reads only from the previous one.
 
+Staging models that read the simulator's Parquet files (`stg_sim_daily`, `stg_sim_orders`) are views
+with a path relative to `dbt_project/`. Notebooks and apps query the core tables instead.
+
 ## Grain of every table
 
 | Table | One row is... | Key | Source |
